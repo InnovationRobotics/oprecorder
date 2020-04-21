@@ -135,17 +135,22 @@ class RcRecorder(object):
 
         self.rcOverrideActionSub = rospy.Subscriber('/mavros/rc/override', msg.OverrideRCIn, self.RCOverrideActionSubCB)
 
-        self.store_file_name = determinePathToRecording()+"rec"+datetime.now().strftime("%d-%m-H%H:%M:%S")+".csv"
-        self.store_rec_path = determinePathToRecording()+"rec"+datetime.now().strftime("%d-%m-H%H:%M:%S")
-        self.store_number=1
+        self.store_number = 1
+        identifier = "rec"+datetime.now().strftime("%d-%m-H%H:%M:%S")
+        path = determinePathToRecording()+ identifier + "/"
+        self.store_rec_path = path
         os.mkdir(self.store_rec_path)
+        self.store_file_name = self.store_rec_path+identifier+".csv"
+        bagfilename = self.store_rec_path+identifier+".bag"
+        bagrecordcommand = "rosbag record --duration=2h --node=/rcrecorder --bz2 -O "+bagfilename
+
         with open(self.store_file_name, 'w', newline='') as csvfile:
             fieldnames = ['Date&Time', 'RCActions','JoyActions', 'VehiclePosition', 'ShovelPosition','ArmHeight',
                           'ArmShortHeight', 'BladeImu',
                           'VehicleImu', 'GridMap', 'PCloudFile', 'Grade']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
-
+        os.system(bagrecordcommand)
         rospy.spin()
 
 if __name__ == '__main__':
