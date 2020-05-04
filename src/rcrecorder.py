@@ -9,7 +9,7 @@ from std_msgs.msg import String
 from mavros_msgs import msg
 from sensor_msgs.msg import Joy
 from sensor_msgs.msg import Imu, PointCloud2
-from geometry_msgs.msg import PoseWithCovarianceStamped, TwistStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, TwistStamped, PoseStamped
 from grid_map_msgs.msg import GridMap
 import csv
 from datetime import datetime
@@ -40,7 +40,8 @@ class RcRecorder(object):
     world_state = {}
     store_file_name ="rcrecorderDefault.csv"
     store_point_cloud = "rcrpointCloudDefault.gz"
-    currentPointCloud=PointCloud2()
+    currentPointCloud= None
+    #PointCloud2()
 
     def VelodynePointCloudCB(self,msg):
         rospy.logdebug("I was called here")
@@ -96,6 +97,11 @@ class RcRecorder(object):
         joydata = data.axes
         self.world_state['JoyActions'] = joydata
 
+    def SimPositionCB(self,pose):
+        interesting_data = pose
+        self.world_state['SimulationPosition'] = interesting_data
+        rospy.logdebug('position is:' + str(interesting_data))
+
     def RCOverrideActionSubCB(self, data):
         rcoverrideData = data.channels
         print("RCOverrideActionSubCB " + rcoverrideData.__str__())
@@ -103,18 +109,19 @@ class RcRecorder(object):
         identifier = datetime.now().strftime("%d-%m-H%H:%M:%S-")+self.store_number.__str__()
         self.world_state['Date&Time'] = identifier
         self.world_state['RCActions'] = rcoverrideData
-        self.store_point_cloud = "PointCloud"+identifier+".gzip"
-        fullpath = self.store_rec_path+"/"+self.store_point_cloud
-        xyz_array = ros_numpy.point_cloud2.get_xyz_points(self.currentPointCloud)
-        numpy.savez_compressed(fullpath, xyz_array)
-        self.world_state['PCloudFile'] = self.store_point_cloud
+        if self.currentPointCloud != None:
+            self.store_point_cloud = "PointCloud"+identifier+".gzip"
+            fullpath = self.store_rec_path+"/"+self.store_point_cloud
+            xyz_array = ros_numpy.point_cloud2.get_xyz_points(self.currentPointCloud)
+            numpy.savez_compressed(fullpath, xyz_array)
+            self.world_state['PCloudFile'] = self.store_point_cloud
         self.world_state['Grade'] = "N/A"
         # print("joydata" + joydata.__str__())
         rospy.logdebug("actions" + rcoverrideData.__str__())
         with open(self.store_file_name, 'a', newline='') as csvfile:
             fieldnames = ['Date&Time', 'RCActions','JoyActions', 'VehiclePosition', 'ShovelPosition', 'ArmHeight',
                           'ArmShortHeight', 'BladeImu',
-                          'VehicleImu', 'GridMap', 'PCloudFile', 'Grade']
+                          'VehicleImu', 'GridMap', 'SimulationPosition', 'PCloudFile', 'Grade']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow(self.world_state)
         self.store_number = self.store_number + 1
@@ -129,6 +136,8 @@ class RcRecorder(object):
         self.heightSub = rospy.Subscriber('/arm/shortHeight', Int32, self.ArmShortHeightCB)
         self.bladeImuSub = rospy.Subscriber('/arm/blade/Imu', Imu, self.BladeImuCB)
         self.vehicleImuSub = rospy.Subscriber('/mavros/imu/data', Imu, self.VehicleImuCB)
+        self.simPositionSub = rospy.Subscriber('mavros/local_position/pose', PoseStamped, self.SimPositionCB)
+
         self.joyActionSub = rospy.Subscriber('/joy', Joy, self.JoyActionSubCB)
         self.gridMapSub = rospy.Subscriber('/sl_map', GridMap, self.MapCB)
         self.pointCloud = rospy.Subscriber('/velodyne_points', PointCloud2, self.VelodynePointCloudCB)
@@ -147,7 +156,7 @@ class RcRecorder(object):
         with open(self.store_file_name, 'w', newline='') as csvfile:
             fieldnames = ['Date&Time', 'RCActions','JoyActions', 'VehiclePosition', 'ShovelPosition','ArmHeight',
                           'ArmShortHeight', 'BladeImu',
-                          'VehicleImu', 'GridMap', 'PCloudFile', 'Grade']
+                          'VehicleImu', 'GridMap', 'SimulationPosition', 'PCloudFile', 'Grade']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
         os.system(bagrecordcommand)
