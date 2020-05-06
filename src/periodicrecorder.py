@@ -13,7 +13,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped, TwistStamped, PoseStamp
 from grid_map_msgs.msg import GridMap
 import csv
 from datetime import datetime
-import os, time
+import os, time, sys
 import _thread
 import numpy, ros_numpy
 
@@ -133,7 +133,11 @@ class periodicrecorder(object):
     def startBagRecord(self, command):
         os.system(command)
 
-    def __init__(self):
+    def __init__(self, freq=10):
+
+        if (len(sys.argv)>1):
+            freq = int(sys.argv[1])
+
         rospy.init_node('periodicrecorder', anonymous=False)
         # rospy.init_node('rcrecorder', anonymous=False,log_level=rospy.DEBUG)
         # Define Subscribers
@@ -173,7 +177,7 @@ class periodicrecorder(object):
      #   startbagprocess.start()
 #        rospy.spin()
         time.sleep(3)
-        r = rospy.Rate(10)  # 10hz
+        r = rospy.Rate(freq)  # 10hz
         while not rospy.is_shutdown():
             self.SaveData()
             r.sleep()
