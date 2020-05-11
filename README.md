@@ -1,18 +1,10 @@
 # oprecorder - Operator Recorder
-The goal of this software package is to record the world state and the actions performed by an operator.
-
-It starts a ROS node called /oprecorder that monitors the following topics:
-* /mavros/local_position/pose (PoseStamped)
-* /mavros/local_position/velocity (TwistStamped)
-* /arm/height (Int32)
-* /arm/blade/Imu (Imu)
-* /mavros/imu/data (Imu)
-* /stone/1/Pose (PoseStamped)
-* /stone/2/Pose (PoseStamped)
-* /joy (Joy)
-
-Each time the callback of the action (joystick) is called, it changes the world state accordingly and saves the:
+This software package includes several recorders:
+- oprecorder.py that records topics related to the bobcat simulation - Each time the callback of the action (joystick) is called, it changes the world state accordingly and saves the:
 Date&Time, world_state, grade (N/A) by adding a row in the csv file: oprecorder.csv
+- rcrecorder.py that records topics related to the real car and the algoryx simulation - Each time the callback of the action (rcoverride) is called, it changes the world state accordingly and saves the:
+Date&Time, world_state, grade (N/A) by adding a row in the csv file. All the pointclouds are saved. A bagfile is saved as well. It is stored in $HOME/recordings.
+- periodicrecorder.py that records every period of time. The default period is 100ms
 
 
 
